@@ -1421,17 +1421,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     visualizer = new Visualizer(canvas, vizDebug);
     player = new MIDIPlayer(visualizer);
 
-    // Initialize player and load samples
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    loadingIndicator.style.display = 'block';
-    try {
-        await player.init();
-        loadingIndicator.style.display = 'none';
-    } catch (error) {
-        console.error('Ошибка инициализации:', error);
-        loadingIndicator.innerHTML = '<div class="loading-text">❌ Ошибка загрузки сэмплов</div>';
-    }
-
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
     const fileInfo = document.getElementById('fileInfo');
@@ -1455,6 +1444,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const volumeValue = document.getElementById('volumeValue');
     const tempoSlider = document.getElementById('tempoSlider');
     const tempoValue = document.getElementById('tempoValue');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Lazy initialization on first user interaction
+    let isInitialized = false;
+    async function ensureInitialized() {
+        if (isInitialized) return;
+        
+        loadingIndicator.style.display = 'block';
+        try {
+            await player.init();
+            loadingIndicator.style.display = 'none';
+            isInitialized = true;
+        } catch (error) {
+            console.error('Ошибка инициализации:', error);
+            loadingIndicator.innerHTML = '<div class="loading-text">❌ Ошибка загрузки сэмплов</div>';
+        }
+    }
 
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -1493,7 +1499,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (file) handleFile(file);
     });
 
-    function handleFile(file) {
+    async function handleFile(file) {
+        await ensureInitialized();
+        
         currentFileName = file.name;
         const reader = new FileReader();
         
@@ -1556,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     playBtn.addEventListener('click', async () => {
+        await ensureInitialized();
         await player.play(player.currentTime);
         status.textContent = 'Воспроизведение...';
     });
