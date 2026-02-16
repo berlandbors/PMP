@@ -1,299 +1,187 @@
-// ===== РАСШИРЕННАЯ ГЕНЕРАЦИЯ ЗВУКА (ТОЛЬКО ОРГАНЫ) =====
-function createAdvancedOscillator(audioContext, frequency, type, time) {
-    const now = audioContext.currentTime + time;
-    
-    switch(type) {
-        // Органы - все типы
-        case 'organ':
-            return createOrgan(audioContext, frequency, now);
-        case 'church-organ':
-            return createChurchOrgan(audioContext, frequency, now);
-        case 'jazz-organ':
-            return createJazzOrgan(audioContext, frequency, now);
-        case 'rock-organ':
-            return createRockOrgan(audioContext, frequency, now);
-        case 'theater-organ':
-            return createTheaterOrgan(audioContext, frequency, now);
-        case 'pipe-organ':
-            return createPipeOrgan(audioContext, frequency, now);
-        case 'reed-organ':
-            return createReedOrgan(audioContext, frequency, now);
+// ===== BANJO SAMPLER - AUDIO SAMPLE PLAYBACK =====
+class BanjoSampler {
+    constructor(audioContext) {
+        this.audioContext = audioContext;
+        this.samples = new Map(); // MIDI note -> {forte: AudioBuffer, piano: AudioBuffer}
+        this.isLoaded = false;
+        
+        // Note mapping: note name to chromatic offset
+        this.NOTE_MAP = {
+            'C': 0, 'Cs': 1, 'D': 2, 'Ds': 3, 'E': 4, 'F': 5,
+            'Fs': 6, 'G': 7, 'Gs': 8, 'A': 9, 'As': 10, 'B': 11
+        };
+    }
+
+    // Parse filename to extract note info
+    parseFileName(filename) {
+        // Format: banjo_C3_very-long_forte_normal.mp3
+        const match = filename.match(/banjo_([A-G]s?)(\d)_very-long_(forte|piano)_normal\.mp3/);
+        if (!match) return null;
+        
+        const [, noteName, octave, dynamic] = match;
+        // Formula: MIDI = (octave + 1) * 12 + NOTE_MAP[note]
+        const midiNote = (parseInt(octave) + 1) * 12 + this.NOTE_MAP[noteName];
+        
+        return { midiNote, dynamic };
+    }
+
+    async loadSamples() {
+        console.log('🎵 Начинается загрузка сэмплов банджо...');
+        
+        try {
+            // Get list of sample files
+            const files = [
+                'banjo_C3_very-long_forte_normal.mp3', 'banjo_C3_very-long_piano_normal.mp3',
+                'banjo_Cs3_very-long_forte_normal.mp3', 'banjo_Cs3_very-long_piano_normal.mp3',
+                'banjo_D3_very-long_forte_normal.mp3', 'banjo_D3_very-long_piano_normal.mp3',
+                'banjo_Ds3_very-long_forte_normal.mp3', 'banjo_Ds3_very-long_piano_normal.mp3',
+                'banjo_E3_very-long_forte_normal.mp3', 'banjo_E3_very-long_piano_normal.mp3',
+                'banjo_F3_very-long_forte_normal.mp3', 'banjo_F3_very-long_piano_normal.mp3',
+                'banjo_Fs3_very-long_forte_normal.mp3', 'banjo_Fs3_very-long_piano_normal.mp3',
+                'banjo_G3_very-long_forte_normal.mp3', 'banjo_G3_very-long_piano_normal.mp3',
+                'banjo_Gs3_very-long_forte_normal.mp3', 'banjo_Gs3_very-long_piano_normal.mp3',
+                'banjo_A3_very-long_forte_normal.mp3', 'banjo_A3_very-long_piano_normal.mp3',
+                'banjo_As3_very-long_forte_normal.mp3', 'banjo_As3_very-long_piano_normal.mp3',
+                'banjo_B3_very-long_forte_normal.mp3', 'banjo_B3_very-long_piano_normal.mp3',
+                'banjo_C4_very-long_forte_normal.mp3', 'banjo_C4_very-long_piano_normal.mp3',
+                'banjo_Cs4_very-long_forte_normal.mp3', 'banjo_Cs4_very-long_piano_normal.mp3',
+                'banjo_D4_very-long_forte_normal.mp3', 'banjo_D4_very-long_piano_normal.mp3',
+                'banjo_Ds4_very-long_forte_normal.mp3', 'banjo_Ds4_very-long_piano_normal.mp3',
+                'banjo_E4_very-long_forte_normal.mp3', 'banjo_E4_very-long_piano_normal.mp3',
+                'banjo_F4_very-long_forte_normal.mp3', 'banjo_F4_very-long_piano_normal.mp3',
+                'banjo_Fs4_very-long_forte_normal.mp3', 'banjo_Fs4_very-long_piano_normal.mp3',
+                'banjo_G4_very-long_piano_normal.mp3',
+                'banjo_Gs4_very-long_forte_normal.mp3', 'banjo_Gs4_very-long_piano_normal.mp3',
+                'banjo_A4_very-long_forte_normal.mp3', 'banjo_A4_very-long_piano_normal.mp3',
+                'banjo_As4_very-long_forte_normal.mp3', 'banjo_As4_very-long_piano_normal.mp3',
+                'banjo_B4_very-long_forte_normal.mp3', 'banjo_B4_very-long_piano_normal.mp3',
+                'banjo_C5_very-long_forte_normal.mp3', 'banjo_C5_very-long_piano_normal.mp3',
+                'banjo_Cs5_very-long_forte_normal.mp3',
+                'banjo_D5_very-long_forte_normal.mp3', 'banjo_D5_very-long_piano_normal.mp3',
+                'banjo_Ds5_very-long_forte_normal.mp3', 'banjo_Ds5_very-long_piano_normal.mp3',
+                'banjo_E5_very-long_forte_normal.mp3', 'banjo_E5_very-long_piano_normal.mp3',
+                'banjo_F5_very-long_forte_normal.mp3', 'banjo_F5_very-long_piano_normal.mp3',
+                'banjo_Fs5_very-long_forte_normal.mp3', 'banjo_Fs5_very-long_piano_normal.mp3',
+                'banjo_G5_very-long_forte_normal.mp3', 'banjo_G5_very-long_piano_normal.mp3',
+                'banjo_Gs5_very-long_piano_normal.mp3',
+                'banjo_A5_very-long_forte_normal.mp3', 'banjo_A5_very-long_piano_normal.mp3',
+                'banjo_As5_very-long_forte_normal.mp3', 'banjo_As5_very-long_piano_normal.mp3',
+                'banjo_B5_very-long_forte_normal.mp3', 'banjo_B5_very-long_piano_normal.mp3',
+                'banjo_C6_very-long_forte_normal.mp3',
+                'banjo_Cs6_very-long_forte_normal.mp3',
+                'banjo_D6_very-long_forte_normal.mp3',
+                'banjo_Ds6_very-long_forte_normal.mp3',
+                'banjo_E6_very-long_forte_normal.mp3'
+            ];
             
-        default:
-            return createOrgan(audioContext, frequency, now);
+            // Load all samples
+            const loadPromises = files.map(async (filename) => {
+                try {
+                    const response = await fetch(`Piano/${filename}`);
+                    if (!response.ok) {
+                        console.warn(`⚠️ Файл не найден: ${filename}`);
+                        return;
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    
+                    const info = this.parseFileName(filename);
+                    if (info) {
+                        if (!this.samples.has(info.midiNote)) {
+                            this.samples.set(info.midiNote, {});
+                        }
+                        this.samples.get(info.midiNote)[info.dynamic] = audioBuffer;
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Ошибка загрузки ${filename}:`, error);
+                }
+            });
+            
+            await Promise.all(loadPromises);
+            this.isLoaded = true;
+            console.log(`✅ Загружено ${this.samples.size} нот`);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки сэмплов:', error);
+            throw error;
+        }
     }
-}
 
-// ===== ОРГАНЫ - РАСШИРЕННЫЕ ТИПЫ =====
-
-// 1. Классический орган (базовый, устойчивый)
-function createOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    // Основная частота и гармоники (drawbars 888000000)
-    const fundamental = ctx.createOscillator();
-    fundamental.type = 'sine';
-    fundamental.frequency.setValueAtTime(freq, time);
-    const fundamentalGain = ctx.createGain();
-    fundamentalGain.gain.setValueAtTime(0.8, time);
-    fundamental.connect(fundamentalGain).connect(mainGain);
-    
-    // Вторая гармоника (октава выше)
-    const octave = ctx.createOscillator();
-    octave.type = 'sine';
-    octave.frequency.setValueAtTime(freq * 2, time);
-    const octaveGain = ctx.createGain();
-    octaveGain.gain.setValueAtTime(0.6, time);
-    octave.connect(octaveGain).connect(mainGain);
-    
-    // Третья гармоника (квинта)
-    const fifth = ctx.createOscillator();
-    fifth.type = 'sine';
-    fifth.frequency.setValueAtTime(freq * 3, time);
-    const fifthGain = ctx.createGain();
-    fifthGain.gain.setValueAtTime(0.4, time);
-    fifth.connect(fifthGain).connect(mainGain);
-    
-    return { oscillator: fundamental, gainNode: mainGain, extras: [octave, fifth] };
-}
-
-// 2. Церковный орган (величественный, с богатыми обертонами)
-function createChurchOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    const oscillators = [];
-    // Создаем 7 гармоник для богатого звучания
-    const harmonics = [1, 2, 3, 4, 5, 6, 8]; // Основные обертоны церковного органа
-    const gains = [1.0, 0.7, 0.5, 0.3, 0.25, 0.2, 0.15];
-    
-    harmonics.forEach((harmonic, index) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq * harmonic, time);
+    // Find nearest available sample
+    findNearestSample(targetNote, dynamic) {
+        // Try exact match first
+        if (this.samples.has(targetNote)) {
+            const sample = this.samples.get(targetNote);
+            if (sample[dynamic]) {
+                return { note: targetNote, buffer: sample[dynamic] };
+            }
+            // Try opposite dynamic if requested not available
+            const oppositeDynamic = dynamic === 'forte' ? 'piano' : 'forte';
+            if (sample[oppositeDynamic]) {
+                return { note: targetNote, buffer: sample[oppositeDynamic] };
+            }
+        }
         
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(gains[index], time);
+        // Find nearest note
+        let nearestNote = targetNote;
+        let minDistance = Infinity;
         
-        osc.connect(gain).connect(mainGain);
-        oscillators.push(osc);
-    });
-    
-    return { oscillator: oscillators[0], gainNode: mainGain, extras: oscillators.slice(1) };
-}
-
-// 3. Джазовый орган Hammond B3 (теплый, насыщенный)
-function createJazzOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    // Hammond B3 drawbar настройка: 888000000 (percussive jazz sound)
-    const fundamental = ctx.createOscillator();
-    fundamental.type = 'sine';
-    fundamental.frequency.setValueAtTime(freq, time);
-    const fundamentalGain = ctx.createGain();
-    fundamentalGain.gain.setValueAtTime(0.9, time);
-    fundamental.connect(fundamentalGain).connect(mainGain);
-    
-    const octaveUp = ctx.createOscillator();
-    octaveUp.type = 'sine';
-    octaveUp.frequency.setValueAtTime(freq * 2, time);
-    const octaveUpGain = ctx.createGain();
-    octaveUpGain.gain.setValueAtTime(0.8, time);
-    octaveUp.connect(octaveUpGain).connect(mainGain);
-    
-    const twelfth = ctx.createOscillator();
-    twelfth.type = 'sine';
-    twelfth.frequency.setValueAtTime(freq * 3, time);
-    const twelfthGain = ctx.createGain();
-    twelfthGain.gain.setValueAtTime(0.7, time);
-    twelfth.connect(twelfthGain).connect(mainGain);
-    
-    // Добавляем Leslie эффект (вращающийся динамик)
-    const lfo = ctx.createOscillator();
-    lfo.frequency.setValueAtTime(6, time); // 6 Hz модуляция
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.setValueAtTime(10, time); // Глубина вибрато
-    lfo.connect(lfoGain);
-    lfoGain.connect(fundamental.frequency);
-    lfoGain.connect(octaveUp.frequency);
-    lfoGain.connect(twelfth.frequency);
-    
-    return { oscillator: fundamental, gainNode: mainGain, extras: [octaveUp, twelfth, lfo] };
-}
-
-// 4. Рок-орган (агрессивный, с перегрузкой)
-function createRockOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    // Используем более агрессивные волны
-    const osc1 = ctx.createOscillator();
-    osc1.type = 'square'; // Квадратная волна для агрессии
-    osc1.frequency.setValueAtTime(freq, time);
-    const gain1 = ctx.createGain();
-    gain1.gain.setValueAtTime(0.8, time);
-    osc1.connect(gain1).connect(mainGain);
-    
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'sawtooth';
-    osc2.frequency.setValueAtTime(freq * 2, time);
-    const gain2 = ctx.createGain();
-    gain2.gain.setValueAtTime(0.6, time);
-    osc2.connect(gain2).connect(mainGain);
-    
-    // Добавляем искажение через waveshaper
-    const distortion = ctx.createWaveShaper();
-    distortion.curve = makeDistortionCurve(50); // Средняя перегрузка
-    mainGain.connect(distortion);
-    
-    const postGain = ctx.createGain();
-    postGain.gain.setValueAtTime(0.7, time);
-    distortion.connect(postGain);
-    
-    return { oscillator: osc1, gainNode: postGain, extras: [osc2] };
-}
-
-// 5. Театральный орган (насыщенный, драматичный)
-function createTheaterOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    const oscillators = [];
-    // Театральный орган имеет много регистров
-    const harmonics = [0.5, 1, 2, 3, 4, 5, 6, 8]; // Включая суб-октаву
-    const gains = [0.4, 1.0, 0.8, 0.6, 0.4, 0.3, 0.2, 0.15];
-    
-    harmonics.forEach((harmonic, index) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq * harmonic, time);
+        for (const [note, sample] of this.samples.entries()) {
+            const distance = Math.abs(note - targetNote);
+            if (distance < minDistance) {
+                if (sample[dynamic] || sample['forte'] || sample['piano']) {
+                    minDistance = distance;
+                    nearestNote = note;
+                }
+            }
+        }
         
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(gains[index], time);
+        const sample = this.samples.get(nearestNote);
+        const buffer = sample[dynamic] || sample['forte'] || sample['piano'];
         
-        osc.connect(gain).connect(mainGain);
-        oscillators.push(osc);
-    });
-    
-    // Добавляем тремоло (амплитудная модуляция)
-    const tremolo = ctx.createOscillator();
-    tremolo.frequency.setValueAtTime(5, time); // 5 Hz тремоло
-    const tremoloGain = ctx.createGain();
-    tremoloGain.gain.setValueAtTime(0.3, time);
-    tremolo.connect(tremoloGain);
-    tremoloGain.connect(mainGain.gain);
-    
-    return { oscillator: oscillators[0], gainNode: mainGain, extras: [...oscillators.slice(1), tremolo] };
-}
-
-// 6. Трубный орган (мощный, с акцентом на низкие частоты)
-function createPipeOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    // Мощный бас
-    const subOsc = ctx.createOscillator();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(freq * 0.5, time); // Суб-октава
-    const subGain = ctx.createGain();
-    subGain.gain.setValueAtTime(0.9, time);
-    subOsc.connect(subGain).connect(mainGain);
-    
-    const fundamental = ctx.createOscillator();
-    fundamental.type = 'sine';
-    fundamental.frequency.setValueAtTime(freq, time);
-    const fundamentalGain = ctx.createGain();
-    fundamentalGain.gain.setValueAtTime(1.0, time);
-    fundamental.connect(fundamentalGain).connect(mainGain);
-    
-    const octave = ctx.createOscillator();
-    octave.type = 'sine';
-    octave.frequency.setValueAtTime(freq * 2, time);
-    const octaveGain = ctx.createGain();
-    octaveGain.gain.setValueAtTime(0.7, time);
-    octave.connect(octaveGain).connect(mainGain);
-    
-    const fifth = ctx.createOscillator();
-    fifth.type = 'sine';
-    fifth.frequency.setValueAtTime(freq * 3, time);
-    const fifthGain = ctx.createGain();
-    fifthGain.gain.setValueAtTime(0.5, time);
-    fifth.connect(fifthGain).connect(mainGain);
-    
-    // Низкочастотный фильтр для акцента на басе
-    const lowpass = ctx.createBiquadFilter();
-    lowpass.type = 'lowpass';
-    lowpass.frequency.setValueAtTime(2000, time);
-    lowpass.Q.setValueAtTime(1, time);
-    mainGain.connect(lowpass);
-    
-    const postGain = ctx.createGain();
-    postGain.gain.setValueAtTime(1.0, time);
-    lowpass.connect(postGain);
-    
-    return { oscillator: fundamental, gainNode: postGain, extras: [subOsc, octave, fifth] };
-}
-
-// 7. Язычковый орган (винтажный, ностальгический)
-function createReedOrgan(ctx, freq, time) {
-    const mainGain = ctx.createGain();
-    
-    // Используем треугольную волну как основу (характерно для язычковых органов)
-    const osc1 = ctx.createOscillator();
-    osc1.type = 'triangle';
-    osc1.frequency.setValueAtTime(freq, time);
-    const gain1 = ctx.createGain();
-    gain1.gain.setValueAtTime(0.8, time);
-    osc1.connect(gain1).connect(mainGain);
-    
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(freq * 2, time);
-    const gain2 = ctx.createGain();
-    gain2.gain.setValueAtTime(0.5, time);
-    osc2.connect(gain2).connect(mainGain);
-    
-    // Добавляем небольшой детюн для винтажного звучания
-    const osc3 = ctx.createOscillator();
-    osc3.type = 'triangle';
-    osc3.frequency.setValueAtTime(freq * 1.01, time); // Детюн +1%
-    const gain3 = ctx.createGain();
-    gain3.gain.setValueAtTime(0.4, time);
-    osc3.connect(gain3).connect(mainGain);
-    
-    // Медленное вибрато для винтажного эффекта
-    const vibrato = ctx.createOscillator();
-    vibrato.frequency.setValueAtTime(3, time); // 3 Hz вибрато
-    const vibratoGain = ctx.createGain();
-    vibratoGain.gain.setValueAtTime(5, time);
-    vibrato.connect(vibratoGain);
-    vibratoGain.connect(osc1.frequency);
-    vibratoGain.connect(osc2.frequency);
-    vibratoGain.connect(osc3.frequency);
-    
-    // Легкий фильтр для теплого звучания
-    const lowpass = ctx.createBiquadFilter();
-    lowpass.type = 'lowpass';
-    lowpass.frequency.setValueAtTime(3000, time);
-    lowpass.Q.setValueAtTime(0.7, time);
-    mainGain.connect(lowpass);
-    
-    const postGain = ctx.createGain();
-    postGain.gain.setValueAtTime(1.0, time);
-    lowpass.connect(postGain);
-    
-    return { oscillator: osc1, gainNode: postGain, extras: [osc2, osc3, vibrato] };
-}
-
-// Вспомогательная функция для создания кривой искажения
-function makeDistortionCurve(amount) {
-    const k = typeof amount === 'number' ? amount : 50;
-    const n_samples = 44100;
-    const curve = new Float32Array(n_samples);
-    const deg = Math.PI / 180;
-    
-    for (let i = 0; i < n_samples; i++) {
-        const x = i * 2 / n_samples - 1;
-        curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+        return { note: nearestNote, buffer };
     }
-    
-    return curve;
+
+    play(note, velocity, duration, time) {
+        if (!this.isLoaded) {
+            console.warn('⚠️ Сэмплы еще не загружены');
+            return null;
+        }
+        
+        try {
+            // Choose dynamic layer based on velocity
+            const dynamic = velocity > 64 ? 'forte' : 'piano';
+            
+            // Find appropriate sample
+            const { note: sourceNote, buffer } = this.findNearestSample(note, dynamic);
+            
+            if (!buffer) {
+                console.warn(`⚠️ Не найден сэмпл для ноты ${note}`);
+                return null;
+            }
+            
+            // Create buffer source
+            const source = this.audioContext.createBufferSource();
+            source.buffer = buffer;
+            
+            // Apply pitch shifting if needed
+            if (sourceNote !== note) {
+                const semitonesDiff = note - sourceNote;
+                source.playbackRate.value = Math.pow(2, semitonesDiff / 12);
+            }
+            
+            // Start playback
+            source.start(time);
+            source.stop(time + duration + 0.1);
+            
+            return source;
+            
+        } catch (error) {
+            console.error('❌ Ошибка воспроизведения ноты:', error);
+            return null;
+        }
+    }
 }
 
 // ===== MIDI ПАРСЕР (УЛУЧШЕННЫЙ) =====
@@ -1014,7 +902,7 @@ class MIDIPlayer {
         this.audioContext = null;
         this.volume = 30;
         this.tempo = 100;
-        this.waveType = 'organ';
+        this.sampler = null;
         this.visualizer = visualizer;
         this.updateInterval = null;
         this.mediaRecorder = null;
@@ -1029,6 +917,12 @@ class MIDIPlayer {
         }
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
+        }
+        
+        // Initialize and load banjo sampler
+        if (!this.sampler) {
+            this.sampler = new BanjoSampler(this.audioContext);
+            await this.sampler.loadSamples();
         }
     }
 
@@ -1167,49 +1061,26 @@ class MIDIPlayer {
     }
 
     playNote(note, velocity, duration) {
-        if (!this.audioContext) return;
+        if (!this.audioContext || !this.sampler || !this.sampler.isLoaded) return;
 
         try {
             const time = this.audioContext.currentTime;
-            const frequency = 440 * Math.pow(2, (note - 69) / 12);
+            const sourceNode = this.sampler.play(note, velocity, duration, time);
             
-            const soundResult = createAdvancedOscillator(
-                this.audioContext, 
-                frequency, 
-                this.waveType, 
-                0
-            );
-            
-            const oscillator = soundResult.oscillator;
-            const customGain = soundResult.gainNode;
-            const extras = soundResult.extras || [];
+            if (!sourceNode) return;
             
             const masterGain = this.audioContext.createGain();
-            const volumeMultiplier = (velocity / 127) * (this.volume / 100);
+            const volumeMultiplier = (this.volume / 100);
             
             masterGain.gain.setValueAtTime(volumeMultiplier, time);
             masterGain.gain.exponentialRampToValueAtTime(0.01, time + duration);
             
-            if (customGain) {
-                customGain.connect(masterGain);
-            } else {
-                oscillator.connect(masterGain);
-            }
+            sourceNode.connect(masterGain);
             masterGain.connect(this.audioContext.destination);
             
             if (this.mediaRecorder && this.isRecording && this.recordingDestination) {
                 masterGain.connect(this.recordingDestination);
             }
-            
-            oscillator.start(time);
-            oscillator.stop(time + duration + 0.1);
-            
-            extras.forEach(osc => {
-                if (osc && osc.start) {
-                    osc.start(time);
-                    osc.stop(time + duration + 0.1);
-                }
-            });
             
             this.visualizer.addNote(note, velocity);
             
@@ -1285,9 +1156,6 @@ class MIDIPlayer {
         }
     }
 
-    setWaveType(type) {
-        this.waveType = type;
-    }
 
     seek(time) {
         const wasPlaying = this.isPlaying;
@@ -1389,7 +1257,7 @@ class MIDIPlayer {
 
     // ===== ЭКСПОРТ В WAV =====
     async exportToWAV() {
-        if (!this.midiData) return null;
+        if (!this.midiData || !this.sampler || !this.sampler.isLoaded) return null;
 
         const duration = this.duration;
         const sampleRate = 44100;
@@ -1401,6 +1269,11 @@ class MIDIPlayer {
             Math.ceil(sampleRate * duration), 
             sampleRate
         );
+        
+        // Create offline sampler with samples from main sampler
+        const offlineSampler = new BanjoSampler(offlineContext);
+        offlineSampler.samples = this.sampler.samples;
+        offlineSampler.isLoaded = true;
         
         const offlineGain = offlineContext.createGain();
         offlineGain.gain.value = this.volume / 100;
@@ -1423,8 +1296,6 @@ class MIDIPlayer {
         tempoChanges.sort((a, b) => a.tick - b.tick);
 
         // Планируем все ноты для offline рендеринга
-        const scheduledOscillators = [];
-
         this.midiData.tracks.forEach(track => {
             const noteMap = new Map();
             
@@ -1443,44 +1314,22 @@ class MIDIPlayer {
                     if (noteOn) {
                         const noteDuration = eventTime - noteOn.startTime;
                         
-                        // Создаём ноту в offline context
-                        const frequency = 440 * Math.pow(2, (noteOn.note - 69) / 12);
-                        
-                        const soundResult = createAdvancedOscillator(
-                            offlineContext, 
-                            frequency, 
-                            this.waveType, 
+                        // Use sampler to play note
+                        const sourceNode = offlineSampler.play(
+                            noteOn.note, 
+                            noteOn.velocity, 
+                            noteDuration, 
                             noteOn.startTime
                         );
                         
-                        const oscillator = soundResult.oscillator;
-                        const customGain = soundResult.gainNode;
-                        const extras = soundResult.extras || [];
-                        
-                        const noteGain = offlineContext.createGain();
-                        const volumeMultiplier = (noteOn.velocity / 127);
-                        
-                        noteGain.gain.setValueAtTime(volumeMultiplier, noteOn.startTime);
-                        noteGain.gain.exponentialRampToValueAtTime(0.01, noteOn.startTime + noteDuration);
-                        
-                        if (customGain) {
-                            customGain.connect(noteGain);
-                        } else {
-                            oscillator.connect(noteGain);
+                        if (sourceNode) {
+                            const noteGain = offlineContext.createGain();
+                            noteGain.gain.setValueAtTime(1.0, noteOn.startTime);
+                            noteGain.gain.exponentialRampToValueAtTime(0.01, noteOn.startTime + noteDuration);
+                            
+                            sourceNode.connect(noteGain);
+                            noteGain.connect(offlineGain);
                         }
-                        noteGain.connect(offlineGain);
-                        
-                        oscillator.start(noteOn.startTime);
-                        oscillator.stop(noteOn.startTime + noteDuration + 0.1);
-                        
-                        extras.forEach(osc => {
-                            if (osc && osc.start) {
-                                osc.start(noteOn.startTime);
-                                osc.stop(noteOn.startTime + noteDuration + 0.1);
-                            }
-                        });
-                        
-                        scheduledOscillators.push({ oscillator, noteGain, extras });
                         
                         noteMap.delete(event.note + '_' + event.channel);
                     }
@@ -1566,11 +1415,22 @@ let player;
 let visualizer;
 let currentFileName = '';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('canvas');
     const vizDebug = document.getElementById('vizDebug');
     visualizer = new Visualizer(canvas, vizDebug);
     player = new MIDIPlayer(visualizer);
+
+    // Initialize player and load samples
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    loadingIndicator.style.display = 'block';
+    try {
+        await player.init();
+        loadingIndicator.style.display = 'none';
+    } catch (error) {
+        console.error('Ошибка инициализации:', error);
+        loadingIndicator.innerHTML = '<div class="loading-text">❌ Ошибка загрузки сэмплов</div>';
+    }
 
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
@@ -1580,7 +1440,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const tempoInfo = document.getElementById('tempoInfo');
     const visualizerEl = document.getElementById('visualizer');
     const visualizationMode = document.getElementById('visualizationMode');
-    const instrumentSelector = document.getElementById('instrumentSelector');
     const volumeControl = document.getElementById('volumeControl');
     const tempoControl = document.getElementById('tempoControl');
     const progressContainer = document.getElementById('progressContainer');
@@ -1596,7 +1455,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeValue = document.getElementById('volumeValue');
     const tempoSlider = document.getElementById('tempoSlider');
     const tempoValue = document.getElementById('tempoValue');
-    const waveType = document.getElementById('waveType');
 
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -1663,7 +1521,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 visualizerEl.classList.add('active');
                 visualizationMode.classList.add('active');
-                instrumentSelector.classList.add('active');
                 volumeControl.classList.add('active');
                 tempoControl.classList.add('active');
                 progressContainer.classList.add('active');
@@ -1725,10 +1582,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = e.target.value;
         tempoValue.textContent = value + '%';
         player.setTempo(parseInt(value));
-    });
-
-    waveType.addEventListener('change', (e) => {
-        player.setWaveType(e.target.value);
     });
 
     setInterval(() => {
@@ -1879,7 +1732,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             visualizerEl.classList.add('active');
             visualizationMode.classList.add('active');
-            instrumentSelector.classList.add('active');
             volumeControl.classList.add('active');
             tempoControl.classList.add('active');
             progressContainer.classList.add('active');

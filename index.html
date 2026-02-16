@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎹 MIDI Player Pro</h1>
+        <h1>🪕 MIDI Banjo Player</h1>
         
         <div class="tabs">
             <button class="tab active" data-tab="player">▶ Плеер</button>
@@ -45,17 +45,9 @@
                 <button class="viz-btn" data-mode="circle">⭕ Круг</button>
             </div>
 
-            <div class="instrument-selector" id="instrumentSelector">
-                <label for="waveType">🎹 Тип органа:</label>
-                <select id="waveType">
-                    <option value="organ" selected>Классический орган (устойчивый)</option>
-                    <option value="church-organ">Церковный орган (величественный)</option>
-                    <option value="jazz-organ">Джазовый орган (Hammond B3)</option>
-                    <option value="rock-organ">Рок-орган (перегруженный)</option>
-                    <option value="theater-organ">Театральный орган (насыщенный)</option>
-                    <option value="pipe-organ">Трубный орган (мощный)</option>
-                    <option value="reed-organ">Язычковый орган (винтажный)</option>
-                </select>
+            <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                <div class="loading-spinner">⏳</div>
+                <div class="loading-text">Загрузка сэмплов банджо...</div>
             </div>
 
             <div class="slider-control" id="volumeControl">
